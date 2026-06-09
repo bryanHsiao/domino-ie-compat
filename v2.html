@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LEGACY ▸ MODERN · Domino 相容性修復主控台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090a0e; --bg2:#0e1016; --surf:#13151d; --surf2:#171a23;
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.055);
+    --tx:#e9ebf2; --dim:#8a8f9e; --faint:#5c606e;
+    --signal:#c9f24a;            /* 訊號綠：系統上線 / 已解決 */
+    --signal-dk:#9dbf2e;
+    --err:#ff6f63; --warn:#f2b454;
+    --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+    --cjk:"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--cjk);
+    line-height:1.7;font-size:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  /* 藍圖底紋 + 訊號光暈 */
+  body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(900px 520px at 78% -8%, rgba(201,242,74,.10), transparent 60%),
+      radial-gradient(700px 600px at 8% 12%, rgba(80,120,255,.06), transparent 60%),
+      linear-gradient(var(--line2) 1px,transparent 1px) 0 0/34px 34px,
+      linear-gradient(90deg,var(--line2) 1px,transparent 1px) 0 0/34px 34px,
+      var(--bg)}
+  /* 顆粒 */
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E")}
+
+  .wrap{max-width:1000px;margin:0 auto;padding:clamp(28px,5vw,56px) clamp(18px,5vw,40px) 90px}
+
+  @media (prefers-reduced-motion:no-preference){
+    [data-rise]{opacity:0;transform:translateY(16px);animation:rise .8s cubic-bezier(.16,1,.3,1) forwards}
+    @keyframes rise{to{opacity:1;transform:none}}
+    @keyframes blink{50%{opacity:.25}}
+    @keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  }
+
+  /* 標頭 */
+  .topbar{display:flex;justify-content:flex-end;margin-bottom:10px}
+  .topbar a{font-family:var(--mono);font-size:12px;color:var(--signal);text-decoration:none;border:1px solid rgba(201,242,74,.3);padding:5px 12px;border-radius:999px;letter-spacing:.04em;transition:.15s}
+  .topbar a:hover{background:rgba(201,242,74,.08)}
+  .tagline{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--signal);font-weight:500;
+    display:inline-flex;align-items:center;gap:9px}
+  .tagline .dot{width:7px;height:7px;border-radius:50%;background:var(--signal);box-shadow:0 0 10px var(--signal)}
+  @media (prefers-reduced-motion:no-preference){.tagline .dot{animation:blink 1.6s steps(1) infinite}}
+  h1{font-family:var(--cjk);font-weight:900;font-size:clamp(30px,5.6vw,56px);line-height:1.12;
+    letter-spacing:-.02em;margin:18px 0 18px;max-width:17ch}
+  h1 .hl{color:var(--signal)}
+  .lede{font-size:clamp(15px,2vw,18px);color:var(--dim);max-width:60ch;margin:0}
+
+  .statusbar{margin-top:30px;display:flex;flex-wrap:wrap;gap:10px;font-family:var(--mono);font-size:12px}
+  .pill{border:1px solid var(--line);border-radius:6px;padding:7px 12px;color:var(--dim);background:rgba(255,255,255,.02)}
+  .pill b{color:var(--tx);font-weight:700}
+  .pill.go{border-color:rgba(201,242,74,.4);color:var(--signal);background:rgba(201,242,74,.06)}
+
+  .sep{height:1px;background:var(--line);margin:clamp(38px,6vw,56px) 0;position:relative}
+  .sec-tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
+  h2{font-family:var(--cjk);font-weight:800;font-size:clamp(20px,2.8vw,27px);letter-spacing:-.01em;margin:10px 0 22px}
+  .lead{color:var(--dim);max-width:62ch;margin:-8px 0 26px;font-size:15px}
+
+  /* 方法論 pipeline */
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .ph{position:relative;border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--surf)}
+  .ph .k{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em}
+  .ph h3{font-size:15.5px;margin:8px 0 6px}.ph p{font-size:12.5px;color:var(--dim);margin:0;line-height:1.5}
+  .ph.now{border-color:rgba(201,242,74,.45);background:linear-gradient(180deg,rgba(201,242,74,.07),rgba(201,242,74,.01))}
+  .ph.now .k,.ph.now h3{color:var(--signal)}
+  .ph.now::after{content:"";position:absolute;left:0;right:0;top:-1px;height:1px;overflow:hidden;
+    background:linear-gradient(90deg,transparent,var(--signal),transparent)}
+
+  /* 數字 */
+  .figs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .fig{border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--surf);position:relative;overflow:hidden}
+  .fig .n{font-family:var(--mono);font-weight:800;font-size:clamp(30px,5.4vw,46px);line-height:1;letter-spacing:-.02em;
+    color:var(--signal);text-shadow:0 0 26px rgba(201,242,74,.35)}
+  .fig .n.red{color:var(--err);text-shadow:0 0 26px rgba(255,111,99,.3)}
+  .fig .c{font-size:12.5px;color:var(--dim);margin-top:9px}
+
+  /* 病灶 code 區 */
+  .code{border:1px solid var(--line);border-radius:12px;background:var(--bg2);overflow:hidden;margin-top:8px}
+  .code .bar{font-family:var(--mono);font-size:11.5px;color:var(--faint);padding:9px 14px;border-bottom:1px solid var(--line);letter-spacing:.05em}
+  .code .body{padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.85;color:var(--dim)}
+  .code .body .c1{color:var(--err)}.code .body .c2{color:var(--warn)}.code .body b{color:var(--tx)}
+
+  /* 主控台：逐層歷程（主秀）*/
+  .console{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--bg2),#0b0d12);overflow:hidden;
+    box-shadow:0 30px 80px -40px rgba(0,0,0,.8)}
+  .console .ttl{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--faint);
+    padding:11px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+  .console .ttl .live{color:var(--signal)}
+  .log{padding:8px 0}
+  .ln{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:start;padding:11px 16px;border-top:1px solid var(--line2)}
+  .ln:first-child{border-top:none}
+  .ln .no{font-family:var(--mono);font-size:12px;color:var(--faint);padding-top:2px}
+  .ln .msg .err{font-family:var(--mono);font-size:13px;color:var(--err);display:flex;gap:9px;line-height:1.55}
+  .ln .msg .err .mk{font-weight:700}
+  .ln .msg .ok{font-size:13.5px;color:var(--tx);display:flex;gap:9px;margin-top:5px;line-height:1.55}
+  .ln .msg .ok .mk{color:var(--signal);font-family:var(--mono);font-weight:700}
+  .ln .msg .ok b{color:var(--signal);font-weight:600}
+  .ln.origin .msg .ok{font-size:14px}
+  .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;padding:3px 9px;border-radius:5px;white-space:nowrap;height:max-content;margin-top:2px}
+  .t-shim{color:var(--signal);background:rgba(201,242,74,.1);border:1px solid rgba(201,242,74,.3)}
+  .t-env{color:var(--warn);background:rgba(242,180,84,.08);border:1px solid rgba(242,180,84,.28)}
+  .t-redo{color:var(--err);background:rgba(255,111,99,.08);border:1px solid rgba(255,111,99,.28)}
+
+  /* 三類 */
+  .cls{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .cl{border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--surf)}
+  .cl .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+  .cl.s{border-top:2px solid var(--signal)}.cl.s .lbl{color:var(--signal)}
+  .cl.e{border-top:2px solid var(--warn)}.cl.e .lbl{color:var(--warn)}
+  .cl.r{border-top:2px solid var(--err)}.cl.r .lbl{color:var(--err)}
+  .cl h3{font-size:15.5px;margin:9px 0 4px}.cl .m{font-size:12px;color:var(--faint);margin-bottom:12px}
+  .cl ul{margin:0;padding:0;list-style:none}
+  .cl li{font-family:var(--mono);font-size:12.5px;color:var(--dim);padding:6px 0;border-top:1px solid var(--line2)}
+  .cl li:first-child{border-top:none}.cl li::before{content:"› ";color:var(--faint)}
+
+  /* before / after */
+  .ba{display:grid;grid-template-columns:.85fr 1.15fr;gap:16px;align-items:stretch}
+  .card{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .card .h{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .before{background:var(--surf)}.before .h{color:var(--faint)}
+  .before ul{margin:0;padding:14px 14px 16px 30px;color:var(--dim);font-size:13px}.before li{margin:7px 0}
+  .after{background:var(--bg2)}.after .h{color:var(--signal);background:rgba(201,242,74,.05);border-bottom-color:rgba(201,242,74,.18)}
+  .pv{padding:12px}
+  .pv-top{display:flex;gap:8px;margin-bottom:8px}
+  .pv-sel,.pv-inp{height:30px;border:1px solid var(--line);border-radius:7px;font-family:var(--mono);font-size:11.5px;color:var(--dim);display:flex;align-items:center;padding:0 10px;background:var(--surf2)}
+  .pv-sel{flex:0 0 92px;justify-content:space-between}.pv-sel::after{content:"▾";color:var(--faint);font-size:10px}
+  .pv-inp{flex:1;color:var(--faint)}.pv-inp::before{content:"⌕  "}
+  .pv-grid{display:grid;grid-template-columns:1fr 132px;gap:8px}
+  .pv-list,.pv-pick{border:1px solid var(--line);border-radius:8px;padding:5px;background:var(--surf)}
+  .pcap{font-family:var(--mono);font-size:10px;color:var(--faint);padding:3px 6px 6px}
+  .prow{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px}
+  .prow.sel{background:rgba(201,242,74,.09)}
+  .pav{width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;color:#0a0b0e;background:var(--signal)}
+  .prow:not(.sel) .pav{color:var(--signal);background:rgba(201,242,74,.14)}
+  .pnm{font-size:12.5px;font-weight:600;line-height:1.2}.psub{font-family:var(--mono);font-size:10px;color:var(--faint)}
+  .prm{margin-left:auto;color:var(--faint);font-size:12px}
+  .pv-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+  .pbtn{height:30px;padding:0 12px;border-radius:7px;font-size:12.5px;font-weight:600;display:flex;align-items:center;border:1px solid var(--line);color:var(--dim);background:var(--surf2)}
+  .pbtn.pri{background:var(--signal);border-color:var(--signal);color:#0a0b0e;font-weight:700}
+
+  /* 價值 */
+  .val{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+  .v .vk{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .v h3{font-size:15px;margin:4px 0 5px;color:var(--signal)}.v p{font-size:12.5px;color:var(--dim);margin:0;line-height:1.55}
+
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--faint);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;letter-spacing:.04em}
+
+  @media (max-width:760px){
+    .pipe,.figs,.cls,.val,.ba{grid-template-columns:1fr}
+    .ln{grid-template-columns:28px 1fr;gap:8px}.ln .tag{grid-column:2;justify-self:start;margin-top:2px}
+  }
+  @media print{body{background:#fff;color:#111}body::before,body::after{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar"><a href="index.html">淺色報告版 ▸</a></div>
+
+  <header>
+    <span class="tagline" data-rise style="animation-delay:.05s"><span class="dot"></span>LEGACY ▸ MODERN&nbsp;&nbsp;BROWSER COMPAT</span>
+    <h1 data-rise style="animation-delay:.12s">把 IE 時代的 Notes 表單，<br><span class="hl">救活</span>在 Edge / Chrome</h1>
+    <p class="lede" data-rise style="animation-delay:.2s">不是一個個盲改。先系統化盤點、再實機驗證，最後用一支共用相容墊片把絕大多數問題集中處理；剩下少數才補環境或小幅改寫。</p>
+    <div class="statusbar" data-rise style="animation-delay:.28s">
+      <span class="pill">SYSTEMS <b>3</b></span>
+      <span class="pill">ISSUES <b>933</b></span>
+      <span class="pill">CRITICAL <b>262</b></span>
+      <span class="pill go">SHARED SHIM <b>×1</b></span>
+    </div>
+  </header>
+
+  <div class="sep"></div>
+
+  <div class="sec-tag">PHASE PIPELINE</div>
+  <h2>方法論：四階段，可控可重複</h2>
+  <div class="pipe">
+    <div class="ph"><div class="k">00 準備</div><h3>匯出與版控</h3><p>匯出成可分析的設計檔，納入版控，建立可回復基準。</p></div>
+    <div class="ph"><div class="k">01 靜態盤點</div><h3>找出 IE 寫法</h3><p>掃描全部設計元素，依風險與難度分類產報告。只讀不改。</p></div>
+    <div class="ph"><div class="k">02 瀏覽器驗證</div><h3>確認真的壞</h3><p>實機操作，分清真損壞與誤判，留截圖與錯誤證據。</p></div>
+    <div class="ph now"><div class="k">03 修復</div><h3>共用墊片</h3><p>一支墊片，呼叫端零改動；分批修、人工複查、測試驗證。</p></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="sec-tag">SCAN RESULT · 三套 HR 表單系統</div>
+  <h2>盤點規模</h2>
+  <div class="figs">
+    <div class="fig"><div class="n">3</div><div class="c">套系統一次盤點</div></div>
+    <div class="fig"><div class="n">933</div><div class="c">個相容性問題點</div></div>
+    <div class="fig"><div class="n red">262</div><div class="c">會直接損壞（高風險）</div></div>
+    <div class="fig"><div class="n">1</div><div class="c">支墊片吸收大多數</div></div>
+  </div>
+  <div class="code">
+    <div class="bar">// CORE_DEFECT : 選人鏈</div>
+    <div class="body">
+      使用者按「選人」<br>
+      <span class="c1">→ showModalDialog</span>　開通訊錄彈窗　<b>（IE 模態，已移除）</b><br>
+      <span class="c1">→ ActiveXObject</span>　彈窗內同步 AJAX 取人員　<b>（IE 專屬，已移除）</b><br>
+      <span class="c2">⇒ 整條資料鏈在現代瀏覽器全部失效</span>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="sec-tag">DEBUG LOG · 以「選人功能」為例</div>
+  <h2>逐層修復：紅燈一個個轉綠</h2>
+  <p class="lead">一支共用墊片、呼叫端不改。每修好一層，就精準暴露下一個真問題，系統化地一層層解開。</p>
+  <div class="console">
+    <div class="ttl"><span>selection-flow.log</span><span class="live">● LIVE</span></div>
+    <div class="log">
+      <div class="ln origin"><div class="no">00</div><div class="msg">
+        <div class="ok"><span class="mk">✓</span><span>注入共用相容墊片　<b>選人彈窗開啟、現有人員載入</b></span></div></div>
+        <span class="tag t-shim">SHIM</span></div>
+
+      <div class="ln"><div class="no">01</div><div class="msg">
+        <div class="err"><span class="mk">✗</span><span>單位下拉空白：File does not exist</span></div>
+        <div class="ok"><span class="mk">✓</span><span>外部人事庫未佈署，<b>補上人事資料</b>後正常顯示</span></div></div>
+        <span class="tag t-env">ENV</span></div>
+
+      <div class="ln"><div class="no">02</div><div class="msg">
+        <div class="err"><span class="mk">✗</span><span>Blocked: Mixed Content（HTTPS 頁面發 http 請求）</span></div>
+        <div class="ok"><span class="mk">✓</span><span>墊片自動把同站 <b>http 升級 https</b></span></div></div>
+        <span class="tag t-shim">SHIM</span></div>
+
+      <div class="ln"><div class="no">03</div><div class="msg">
+        <div class="err"><span class="mk">✗</span><span>TypeError: selectNodes is not a function</span></div>
+        <div class="ok"><span class="mk">✓</span><span>墊片以標準方法補回 XPath，<b>待選清單載出</b></span></div></div>
+        <span class="tag t-shim">SHIM</span></div>
+
+      <div class="ln"><div class="no">04</div><div class="msg">
+        <div class="err"><span class="mk">✗</span><span>按「確定」未把值帶回（依賴同步阻塞語意）</span></div>
+        <div class="ok"><span class="mk">⚙</span><span>需<b>小幅改寫為非同步回呼</b>，唯一動邏輯的一類</span></div></div>
+        <span class="tag t-redo">REDESIGN</span></div>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="sec-tag">CLASSIFICATION</div>
+  <h2>所有問題，歸三類處理</h2>
+  <div class="cls">
+    <div class="cl s"><div class="lbl">多數 · SHIM</div><h3>機械式 IE 語法</h3><div class="m">一支共用墊片集中修，呼叫端零改動</div>
+      <ul><li>ActiveX 同步 AJAX</li><li>selectNodes / node.text</li><li>http 升級 https</li><li>showModalDialog 開窗與回填</li></ul></div>
+    <div class="cl e"><div class="lbl">佈署 · ENV</div><h3>環境／資料依賴</h3><div class="m">不是程式問題，由環境補齊</div>
+      <ul><li>外部人事庫未佈署</li><li>簽核／流程模組未就緒</li><li>跨庫設定文件缺漏</li></ul></div>
+    <div class="cl r"><div class="lbl">少數 · REDESIGN</div><h3>需重新設計</h3><div class="m">需小幅改寫程式邏輯</div>
+      <ul><li>showModalDialog 同步回呼</li><li>改為非同步 callback</li><li>一次改好，同模式可複用</li></ul></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="sec-tag">FUNCTION + INTERFACE</div>
+  <h2>完整 = 功能正常 + 介面到位</h2>
+  <p class="lead">功能修好只是「能用」。要「完整」，還要把舊時代的版面一併現代化。以選人視窗為例：</p>
+  <div class="ba">
+    <div class="card before"><div class="h">BEFORE · IE 雙清單</div>
+      <ul><li>兩個下拉 + 三顆搬移按鈕</li><li>純文字清單，靠按鈕來回搬</li><li>看不出已選幾人</li><li>版面在現代瀏覽器跑掉</li></ul></div>
+    <div class="card after"><div class="h">AFTER · 重新設計（真實預覽）</div>
+      <div class="pv">
+        <div class="pv-top"><div class="pv-sel">全部部門</div><div class="pv-inp">姓名或工號</div></div>
+        <div class="pv-grid">
+          <div class="pv-list"><div class="pcap">可選 4 人</div>
+            <div class="prow"><div class="pav">方</div><div><div class="pnm">方榮熙</div><div class="psub">97216 · 資訊部</div></div></div>
+            <div class="prow"><div class="pav">陳</div><div><div class="pnm">陳怡君</div><div class="psub">88471 · 財務部</div></div></div>
+            <div class="prow"><div class="pav">黃</div><div><div class="pnm">黃詠晴</div><div class="psub">90654 · 業務一部</div></div></div></div>
+          <div class="pv-pick"><div class="pcap">已選 2 人</div>
+            <div class="prow sel"><div class="pav">馮</div><div><div class="pnm">馮聖棋</div></div><span class="prm">✕</span></div>
+            <div class="prow sel"><div class="pav">張</div><div><div class="pnm">張雅絜</div></div><span class="prm">✕</span></div></div>
+        </div>
+        <div class="pv-foot"><span class="pbtn">取消</span><span class="pbtn pri">確定加入 2 人</span></div>
+      </div></div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="sec-tag">WHY IT WORKS</div>
+  <h2>這套做法的價值</h2>
+  <div class="val">
+    <div class="v"><div class="vk">01</div><h3>可控</h3><p>先盤點不改 code，全程測試環境，可隨時回復。</p></div>
+    <div class="v"><div class="vk">02</div><h3>可重複</h3><p>同一套工具與墊片，套用每套系統、每個客戶。</p></div>
+    <div class="v"><div class="vk">03</div><h3>精準</h3><p>逐層驗證，分清程式、環境、重設計三類。</p></div>
+    <div class="v"><div class="vk">04</div><h3>可交付</h3><p>每階段有報告與證據，便於溝通與報價。</p></div>
+  </div>
+
+  <footer>
+    <span>DOMINO WEB AP · BROWSER COMPATIBILITY PLAYBOOK</span>
+    <span>範例已匿名 · ANONYMIZED</span>
+  </footer>
+
+</div>
+</body>
+</html>
