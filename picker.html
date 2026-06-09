@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>選擇人員 · 介面重新設計（原型）</title>
+<style>
+  :root{
+    --bg:#eef0f3; --panel:#ffffff; --ink:#1a1c22; --body:#565a64; --faint:#9a9ea8;
+    --line:#e6e8ec; --line-2:#eef0f3;
+    --accent:#0f766e; --accent-ink:#0b5a54; --accent-soft:#e6f4f1; --accent-ring:#0f766e33;
+    --r:12px; --r-sm:9px; --r-pill:999px;
+    --mono:ui-monospace,"SFMono-Regular",Consolas,monospace;
+    --sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei",-apple-system,system-ui,"Segoe UI",sans-serif;
+    --shadow:0 1px 1px rgba(20,22,30,.04),0 12px 32px rgba(20,22,30,.12),0 2px 8px rgba(20,22,30,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100dvh;background:
+      radial-gradient(1200px 600px at 70% -10%, #f6f7f9, transparent),
+      var(--bg);
+    font-family:var(--sans);color:var(--ink);display:flex;align-items:center;justify-content:center;
+    padding:28px;-webkit-font-smoothing:antialiased}
+
+  /* 對話框 */
+  .dialog{width:min(860px,100%);background:var(--panel);border-radius:var(--r);box-shadow:var(--shadow);
+    overflow:hidden;display:flex;flex-direction:column;max-height:calc(100dvh - 56px)}
+  @media (prefers-reduced-motion:no-preference){.dialog{animation:pop .45s cubic-bezier(.16,1,.3,1) both}}
+  @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
+
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    padding:20px 22px 16px;border-bottom:1px solid var(--line)}
+  .head h1{font-size:18px;margin:0 0 3px;letter-spacing:-.01em}
+  .head p{font-size:13px;color:var(--body);margin:0}
+  .x{appearance:none;border:1px solid var(--line);background:#fff;width:32px;height:32px;border-radius:var(--r-sm);
+    color:var(--body);font-size:17px;line-height:1;cursor:pointer;transition:.15s}
+  .x:hover{background:var(--line-2);color:var(--ink)}
+  .x:active{transform:scale(.96)}
+
+  .body{display:grid;grid-template-columns:1fr 320px;gap:0;min-height:0;flex:1}
+  .col{display:flex;flex-direction:column;min-height:0}
+  .col.sel{border-left:1px solid var(--line);background:#fcfcfd}
+
+  .ctrl{padding:14px 18px 12px;display:flex;gap:8px}
+  .ctrl .field{position:relative;flex:1;min-width:0}
+  select,.search input{width:100%;height:38px;border:1px solid var(--line);border-radius:var(--r-sm);
+    background:#fff;color:var(--ink);font:inherit;font-size:14px;padding:0 12px;transition:.15s}
+  .search input{padding-left:34px}
+  select{padding-right:30px;-webkit-appearance:none;appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--faint) 50%),linear-gradient(135deg,var(--faint) 50%,transparent 50%);
+    background-position:calc(100% - 16px) 16px,calc(100% - 11px) 16px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+  select:focus,.search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+  .search .mag{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:14px;pointer-events:none}
+  .search .mag::before{content:"⌕";font-size:18px}
+
+  .meta{padding:2px 18px 8px;font-size:12px;color:var(--faint);font-family:var(--mono);letter-spacing:.02em;
+    display:flex;justify-content:space-between;align-items:center}
+  .linkbtn{appearance:none;border:none;background:none;color:var(--accent);font:inherit;font-size:12.5px;cursor:pointer;padding:2px 2px}
+  .linkbtn:hover{text-decoration:underline}
+
+  .list{overflow:auto;flex:1;padding:2px 10px 12px}
+  .list::-webkit-scrollbar{width:10px}.list::-webkit-scrollbar-thumb{background:#dfe2e7;border-radius:99px;border:3px solid #fff}
+
+  .row{display:flex;align-items:center;gap:11px;padding:8px 8px;border-radius:var(--r-sm);cursor:pointer;transition:background .12s}
+  .row:hover{background:var(--line-2)}
+  .row:active{transform:translateY(.5px)}
+  .av{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;
+    font-size:14px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft)}
+  .who{min-width:0;flex:1}
+  .who .nm{font-size:14px;font-weight:600;line-height:1.3}
+  .who .sub{font-size:12px;color:var(--faint);font-family:var(--mono);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .act{flex:none;font-size:12.5px;color:var(--accent);opacity:0;font-weight:600}
+  .row:hover .act{opacity:1}
+  .row.gone{display:none}
+
+  /* 已選欄 */
+  .sel .head2{padding:14px 18px 6px;display:flex;align-items:baseline;justify-content:space-between}
+  .sel .head2 .t{font-size:13.5px;font-weight:600}
+  .sel .head2 .c{font-family:var(--mono);font-size:12px;color:var(--accent)}
+  .empty{padding:30px 18px;text-align:center;color:var(--faint);font-size:13px}
+  .chiprow{display:flex;align-items:center;gap:11px;padding:8px;border-radius:var(--r-sm)}
+  .chiprow:hover{background:var(--line-2)}
+  .rm{margin-left:auto;flex:none;width:24px;height:24px;border-radius:6px;border:none;background:none;color:var(--faint);
+    font-size:15px;cursor:pointer;line-height:1;transition:.12s}
+  .rm:hover{background:#f0d9d6;color:var(--redo,#a23b32)}
+  .rm:active{transform:scale(.94)}
+
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 18px;border-top:1px solid var(--line);background:#fff}
+  .foot .hint{font-size:12.5px;color:var(--faint)}
+  .btns{display:flex;gap:10px}
+  .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:600;
+    font-size:14px;height:40px;padding:0 18px;border-radius:var(--r-sm);cursor:pointer;transition:.15s}
+  .btn:hover{background:var(--line-2)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-ink)}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-ring)}
+
+  @media (max-width:720px){
+    .body{grid-template-columns:1fr}
+    .col.sel{border-left:none;border-top:1px solid var(--line);max-height:40dvh}
+  }
+</style>
+</head>
+<body>
+
+<!-- 範例資料（mock）：擬真台灣姓名 / 工號 / 部門，僅供原型展示 -->
+<div class="dialog" role="dialog" aria-label="選擇人員">
+
+  <div class="head">
+    <div>
+      <h1>選擇人員</h1>
+      <p>從部門名單挑選，或以姓名、工號搜尋。可複選。</p>
+    </div>
+    <button class="x" aria-label="關閉">✕</button>
+  </div>
+
+  <div class="body">
+    <!-- 可選 -->
+    <div class="col">
+      <div class="ctrl">
+        <div class="field">
+          <select id="dept" aria-label="部門">
+            <option value="">全部部門</option>
+            <option>總經理室</option>
+            <option>人力資源部</option>
+            <option>資訊部</option>
+            <option>財務部</option>
+            <option>業務一部</option>
+          </select>
+        </div>
+        <div class="field search">
+          <span class="mag" aria-hidden="true"></span>
+          <input id="q" type="text" placeholder="姓名或工號" aria-label="搜尋姓名或工號">
+        </div>
+      </div>
+      <div class="meta"><span id="availCount">可選 0 人</span></div>
+      <div class="list" id="avail"></div>
+    </div>
+
+    <!-- 已選 -->
+    <div class="col sel">
+      <div class="head2">
+        <span class="t">已選取</span>
+        <span class="c" id="selCount">0 人</span>
+      </div>
+      <div class="list" id="picked"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="hint" id="footHint">尚未選取人員</span>
+    <div class="btns">
+      <button class="btn" type="button">取消</button>
+      <button class="btn primary" type="button" id="confirm">確定</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 範例資料（mock）
+  const PEOPLE = [
+    {id:"99282", nm:"馮聖棋", dept:"總經理室"},
+    {id:"TW10416", nm:"林文卿", dept:"人力資源部"},
+    {id:"95141", nm:"張雅絜", dept:"人力資源部"},
+    {id:"97216", nm:"方榮熙", dept:"資訊部"},
+    {id:"10233", nm:"吳建霖", dept:"資訊部"},
+    {id:"88471", nm:"陳怡君", dept:"財務部"},
+    {id:"90654", nm:"黃詠晴", dept:"業務一部"},
+    {id:"11820", nm:"蘇柏丞", dept:"業務一部"},
+    {id:"73095", nm:"鄭家瑋", dept:"資訊部"},
+    {id:"64218", nm:"李宛庭", dept:"人力資源部"},
+    {id:"50937", nm:"許博鈞", dept:"財務部"},
+    {id:"82460", nm:"葉冠霖", dept:"總經理室"},
+  ];
+  // 預選兩位，呈現「已選」狀態
+  const picked = new Set(["99282","95141"]);
+
+  const $ = s => document.querySelector(s);
+  const availEl = $("#avail"), pickedEl = $("#picked");
+  const deptEl = $("#dept"), qEl = $("#q");
+
+  function row(p){
+    const init = p.nm[0];
+    const el = document.createElement("div");
+    el.className = "row"; el.dataset.id = p.id;
+    el.innerHTML = `<div class="av">${init}</div>
+      <div class="who"><div class="nm">${p.nm}</div><div class="sub">${p.id} · ${p.dept}</div></div>
+      <div class="act">＋ 加入</div>`;
+    el.onclick = () => { picked.add(p.id); render(); };
+    return el;
+  }
+  function chip(p){
+    const init = p.nm[0];
+    const el = document.createElement("div");
+    el.className = "chiprow";
+    el.innerHTML = `<div class="av">${init}</div>
+      <div class="who"><div class="nm">${p.nm}</div><div class="sub">${p.id} · ${p.dept}</div></div>
+      <button class="rm" aria-label="移除 ${p.nm}">✕</button>`;
+    el.querySelector(".rm").onclick = () => { picked.delete(p.id); render(); };
+    return el;
+  }
+
+  function render(){
+    const dept = deptEl.value, q = qEl.value.trim().toLowerCase();
+    const avail = PEOPLE.filter(p => !picked.has(p.id)
+      && (!dept || p.dept === dept)
+      && (!q || p.nm.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)));
+    availEl.innerHTML = "";
+    avail.forEach(p => availEl.appendChild(row(p)));
+    if(!avail.length) availEl.innerHTML = `<div class="empty">查無符合的人員</div>`;
+    $("#availCount").textContent = `可選 ${avail.length} 人`;
+
+    const sel = PEOPLE.filter(p => picked.has(p.id));
+    pickedEl.innerHTML = "";
+    if(!sel.length){ pickedEl.innerHTML = `<div class="empty">點左側人員加入<br>或用搜尋快速尋找</div>`; }
+    else sel.forEach(p => pickedEl.appendChild(chip(p)));
+    $("#selCount").textContent = `${sel.length} 人`;
+
+    $("#footHint").textContent = sel.length ? `已選取 ${sel.length} 位人員` : "尚未選取人員";
+    $("#confirm").textContent = sel.length ? `確定加入 ${sel.length} 人` : "確定";
+  }
+  deptEl.onchange = render; qEl.oninput = render;
+  render();
+</script>
+</body>
+</html>

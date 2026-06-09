@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Domino 舊系統 現代瀏覽器相容性修復 · 一頁說明</title>
+<style>
+  :root{
+    --bg:#fbfbfc; --ink:#191a1f; --body:#54565f; --faint:#8a8c95;
+    --line:#e7e7ea; --line-strong:#d6d6db;
+    --accent:#0f766e; --accent-ink:#0b5a54; --accent-soft:#e6f4f1;
+    --env:#9a6a1c; --env-soft:#f7efe0; --redo:#a23b32; --redo-soft:#f6e9e7;
+    --r:11px; --r-sm:8px;
+    --mono:ui-monospace,"SFMono-Regular",Consolas,monospace;
+    --sans:"PingFang TC","Noto Sans TC","Microsoft JhengHei",-apple-system,system-ui,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.72;font-size:16px;letter-spacing:.01em;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:clamp(30px,5vw,64px) clamp(20px,5vw,40px) 80px}
+  @media (prefers-reduced-motion:no-preference){.rise{animation:rise .7s cubic-bezier(.16,1,.3,1) both}}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+  .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  h1{font-size:clamp(26px,4.2vw,40px);line-height:1.18;letter-spacing:-.015em;margin:14px 0 14px;max-width:20ch}
+  .lede{font-size:clamp(16px,2vw,18px);color:var(--body);max-width:60ch;margin:0}
+  .rule{height:1px;background:var(--line);margin:clamp(34px,5vw,48px) 0}
+  h2{font-size:clamp(19px,2.6vw,24px);line-height:1.3;letter-spacing:-.01em;margin:0 0 20px}
+  .lead{color:var(--body);max-width:62ch;margin:0 0 26px;font-size:15.5px}
+
+  /* 方法論 */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+  .step{padding:17px 16px 19px;border-left:1px solid var(--line)}
+  .step:first-child{border-left:none}
+  .step .ph{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.05em}
+  .step h3{font-size:15.5px;margin:7px 0 6px} .step p{font-size:13px;color:var(--body);margin:0;line-height:1.55}
+  .step.now{background:var(--accent-soft);border-left-color:var(--accent)} .step.now .ph,.step.now h3{color:var(--accent)}
+
+  /* 數字 */
+  .figs{display:grid;grid-template-columns:repeat(4,1fr)}
+  .fig{padding:6px 18px 6px 0} .fig + .fig{border-left:1px solid var(--line);padding-left:22px}
+  .fig .num{font-family:var(--mono);font-size:clamp(28px,5vw,40px);font-weight:600;letter-spacing:-.02em;line-height:1}
+  .fig .num.warn{color:var(--redo)} .fig .cap{font-size:12.5px;color:var(--body);margin-top:8px;line-height:1.45}
+  .note{border-left:2px solid var(--accent);padding:4px 0 4px 20px;margin-top:24px;color:var(--body);font-size:15px;max-width:64ch}
+  .note b{color:var(--ink);font-weight:600}
+
+  /* 歷程 */
+  .journey{position:relative;padding-left:30px}
+  .journey::before{content:"";position:absolute;left:7px;top:6px;bottom:14px;width:1px;background:var(--line-strong)}
+  .node{position:relative;margin-bottom:24px}
+  .node::before{content:"";position:absolute;left:-30px;top:5px;width:15px;height:15px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+  .node.origin::before{background:var(--ink);border-color:var(--ink)}
+  .node .top{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;margin-bottom:4px}
+  .node .seq{font-family:var(--mono);font-size:12.5px;color:var(--faint)}
+  .node .ttl{font-size:16px;font-weight:600;letter-spacing:-.005em}
+  .node .bd{font-size:14px;color:var(--body);max-width:66ch;line-height:1.6}
+  .node .bd b{color:var(--ink);font-weight:600}
+  .tag{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:2px 9px;border-radius:3px;white-space:nowrap;align-self:center}
+  .t-shim{background:var(--accent-soft);color:var(--accent)} .t-env{background:var(--env-soft);color:var(--env)} .t-redo{background:var(--redo-soft);color:var(--redo)}
+
+  /* 三類 */
+  .cls{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .cl{background:var(--bg);padding:18px}
+  .cl .lbl{font-size:11px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+  .cl.s .lbl{color:var(--accent)} .cl.e .lbl{color:var(--env)} .cl.r .lbl{color:var(--redo)}
+  .cl h3{font-size:15.5px;margin:8px 0 4px} .cl .meta{font-size:12.5px;color:var(--faint);margin-bottom:11px}
+  .cl ul{margin:0;padding:0;list-style:none}
+  .cl li{font-size:13.5px;color:var(--body);padding:5px 0;border-top:1px solid var(--line)} .cl li:first-child{border-top:none}
+
+  /* 完整 = 功能 + 介面 */
+  .ba{display:grid;grid-template-columns:1fr 1.25fr;gap:20px;align-items:stretch}
+  .before,.after{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+  .before{background:#f4f4f5}
+  .panel-h{padding:11px 15px;font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+  .before .panel-h{color:var(--faint)} .after .panel-h{color:var(--accent);background:var(--accent-soft);border-bottom-color:#d4ebe6}
+  .before ul{margin:0;padding:14px 16px 16px 32px;color:var(--body);font-size:13.5px}
+  .before li{margin:6px 0}
+
+  /* after：真實的新介面迷你預覽 */
+  .pv{padding:12px;background:#fff;flex:1}
+  .pv-top{display:flex;gap:8px;margin-bottom:8px}
+  .pv-sel,.pv-inp{height:30px;border:1px solid var(--line);border-radius:7px;font-size:12px;color:var(--body);display:flex;align-items:center;padding:0 10px;background:#fff}
+  .pv-sel{flex:0 0 96px;justify-content:space-between} .pv-sel::after{content:"▾";color:var(--faint);font-size:10px}
+  .pv-inp{flex:1;color:var(--faint)} .pv-inp::before{content:"⌕  ";color:var(--faint)}
+  .pv-grid{display:grid;grid-template-columns:1fr 130px;gap:8px}
+  .pv-list,.pv-pick{border:1px solid var(--line);border-radius:8px;padding:5px}
+  .pv-pick{background:#fcfcfd}
+  .prow{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px}
+  .prow.sel{background:var(--accent-soft)}
+  .pav{width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft)}
+  .prow.sel .pav{background:#fff}
+  .pnm{font-size:12.5px;font-weight:600;line-height:1.2}.psub{font-size:10.5px;color:var(--faint);font-family:var(--mono)}
+  .prm{margin-left:auto;color:var(--faint);font-size:12px}
+  .pcap{font-size:10.5px;color:var(--faint);font-family:var(--mono);padding:2px 6px 6px}
+  .pv-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+  .pbtn{height:30px;padding:0 12px;border-radius:7px;font-size:12.5px;font-weight:600;display:flex;align-items:center;border:1px solid var(--line);background:#fff;color:var(--ink)}
+  .pbtn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  /* 價值 */
+  .val{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+  .v h3{font-size:15px;margin:0 0 5px;color:var(--accent)} .v p{font-size:13px;color:var(--body);margin:0;line-height:1.55}
+  footer{margin-top:54px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--faint);font-family:var(--mono)}
+
+  @media (max-width:720px){
+    .flow,.figs,.cls,.val,.ba{grid-template-columns:1fr}
+    .step{border-left:none;border-top:1px solid var(--line)}
+    .fig + .fig{border-left:none;padding-left:0;border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+  }
+  @media print{body{background:#fff}.rise{animation:none}.rule{margin:30px 0}}
+</style>
+</head>
+<body>
+<div class="wrap rise">
+
+  <header>
+    <div class="kicker">Domino / Notes Web AP 現代化</div>
+    <h1>讓 IE 時代的 Notes 表單，在 Edge / Chrome 重新可用</h1>
+    <p class="lede">不是一個個盲改。先系統化盤點、再實機驗證，最後用一支共用相容墊片把絕大多數問題集中處理；剩下少數才需補環境或小幅改寫。可控、可重複、可交付。</p>
+  </header>
+
+  <div class="rule"></div>
+
+  <h2>一、方法論：四階段</h2>
+  <div class="flow">
+    <div class="step"><div class="ph">準備</div><h3>匯出與版控</h3><p>把系統匯出成可分析的設計檔，納入版控，建立可回復基準。</p></div>
+    <div class="step"><div class="ph">靜態盤點</div><h3>找出 IE 寫法</h3><p>掃描全部設計元素，依風險與修正難度分類產出報告。只讀不改。</p></div>
+    <div class="step"><div class="ph">瀏覽器驗證</div><h3>確認真的壞</h3><p>實機操作，分清真損壞與誤判，留下截圖與錯誤證據。</p></div>
+    <div class="step now"><div class="ph">修復</div><h3>共用墊片</h3><p>一支相容墊片，呼叫端零改動；分批修、人工複查、測試環境驗證。</p></div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>二、盤點規模（案例：三套 HR 表單系統）</h2>
+  <div class="figs">
+    <div class="fig"><div class="num">3</div><div class="cap">套系統一次盤點</div></div>
+    <div class="fig"><div class="num">933</div><div class="cap">個相容性問題點</div></div>
+    <div class="fig"><div class="num warn">262</div><div class="cap">會直接損壞（高風險）</div></div>
+    <div class="fig"><div class="num">1</div><div class="cap">支共用墊片吸收大多數</div></div>
+  </div>
+  <p class="note"><b>核心病灶：</b>「選人彈窗」依賴兩個 IE 專屬技術。先用 <b>showModalDialog</b> 開通訊錄，彈窗內再用 <b>ActiveX 同步 AJAX</b> 向後端取人員。整條資料鏈在現代瀏覽器全部失效。</p>
+
+  <div class="rule"></div>
+
+  <h2>三、逐層修復，以「選人功能」為例</h2>
+  <p class="lead">一支共用墊片、呼叫端不改。每修好一層，就精準暴露下一個真問題，系統化地一層層解開。</p>
+  <div class="journey">
+    <div class="node origin"><div class="top"><span class="ttl">起點：注入共用相容墊片</span><span class="tag t-shim">共用墊片</span></div>
+      <p class="bd">把 IE 的 ActiveX / showModalDialog 用標準技術補回。選人彈窗開啟、現有人員載入。</p></div>
+    <div class="node"><div class="top"><span class="seq">第 1 層</span><span class="ttl">單位下拉空白，顯示「File does not exist」</span><span class="tag t-env">環境／資料</span></div>
+      <p class="bd">下拉用公式讀外部人事庫，但測試環境尚未佈署該庫。<b>補上人事資料</b>後正常顯示。</p></div>
+    <div class="node"><div class="top"><span class="seq">第 2 層</span><span class="ttl">請求被瀏覽器封鎖（Mixed Content）</span><span class="tag t-shim">共用墊片</span></div>
+      <p class="bd">舊程式寫死 http 呼叫後端，HTTPS 頁面被封鎖。墊片自動把同站 <b>http 升級 https</b>。</p></div>
+    <div class="node"><div class="top"><span class="seq">第 3 層</span><span class="ttl">解析回傳資料失敗（selectNodes 不存在）</span><span class="tag t-shim">共用墊片</span></div>
+      <p class="bd">程式用 IE 專屬 selectNodes 解析 XML。墊片以標準方法補回，<b>待選清單載出</b>。</p></div>
+    <div class="node"><div class="top"><span class="seq">第 4 層</span><span class="ttl">按「確定」未把值帶回</span><span class="tag t-redo">需重新設計</span></div>
+      <p class="bd">呼叫端依賴 showModalDialog 的同步阻塞語意，現代瀏覽器無法模擬。需<b>小幅改寫為非同步回呼</b>。唯一需動邏輯的一類。</p></div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>四、所有問題，歸三類處理</h2>
+  <div class="cls">
+    <div class="cl s"><div class="lbl">多數</div><h3>機械式 IE 語法</h3><div class="meta">一支共用墊片集中修，呼叫端零改動</div>
+      <ul><li>ActiveX 同步 AJAX</li><li>selectNodes / node.text</li><li>http 升級 https</li><li>showModalDialog 開窗與回填</li></ul></div>
+    <div class="cl e"><div class="lbl">佈署</div><h3>環境／資料依賴</h3><div class="meta">不是程式問題，由環境補齊</div>
+      <ul><li>外部人事庫未佈署</li><li>簽核／流程模組未就緒</li><li>跨庫設定文件缺漏</li></ul></div>
+    <div class="cl r"><div class="lbl">少數</div><h3>需重新設計</h3><div class="meta">需小幅改寫程式邏輯</div>
+      <ul><li>showModalDialog 同步回呼</li><li>改為非同步 callback</li><li>一次改好，同模式可複用</li></ul></div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>五、完整 = 功能正常 + 介面到位</h2>
+  <p class="lead">功能修好只是「能用」。要「完整」，還要把舊時代的版面一併現代化。以選人視窗為例：</p>
+  <div class="ba">
+    <div class="before">
+      <div class="panel-h">之前：IE 時代雙清單</div>
+      <ul>
+        <li>兩個下拉 + 三顆「增新／移除／全部移除」按鈕</li>
+        <li>純文字清單，靠按鈕來回搬移</li>
+        <li>看不出已選幾人</li>
+        <li>版面在現代瀏覽器跑掉</li>
+      </ul>
+    </div>
+    <div class="after">
+      <div class="panel-h">之後：重新設計（真實預覽）</div>
+      <div class="pv">
+        <div class="pv-top"><div class="pv-sel">全部部門</div><div class="pv-inp">姓名或工號</div></div>
+        <div class="pv-grid">
+          <div class="pv-list">
+            <div class="pcap">可選 4 人</div>
+            <div class="prow"><div class="pav">方</div><div><div class="pnm">方榮熙</div><div class="psub">97216 · 資訊部</div></div></div>
+            <div class="prow"><div class="pav">陳</div><div><div class="pnm">陳怡君</div><div class="psub">88471 · 財務部</div></div></div>
+            <div class="prow"><div class="pav">黃</div><div><div class="pnm">黃詠晴</div><div class="psub">90654 · 業務一部</div></div></div>
+          </div>
+          <div class="pv-pick">
+            <div class="pcap">已選 2 人</div>
+            <div class="prow sel"><div class="pav">馮</div><div><div class="pnm">馮聖棋</div></div><span class="prm">✕</span></div>
+            <div class="prow sel"><div class="pav">張</div><div><div class="pnm">張雅絜</div></div><span class="prm">✕</span></div>
+          </div>
+        </div>
+        <div class="pv-foot"><span class="pbtn">取消</span><span class="pbtn pri">確定加入 2 人</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h2>六、這套做法的價值</h2>
+  <div class="val">
+    <div class="v"><h3>可控</h3><p>先盤點不改 code，全程在測試環境，可隨時回復。</p></div>
+    <div class="v"><h3>可重複</h3><p>同一套工具與墊片，套用每套系統、每個客戶。</p></div>
+    <div class="v"><h3>精準</h3><p>逐層驗證，分清程式、環境、重設計三類。</p></div>
+    <div class="v"><h3>可交付</h3><p>每階段有報告與證據，便於溝通與報價。</p></div>
+  </div>
+
+  <footer>Domino Web AP 現代瀏覽器相容性修復方法論 · 範例已匿名</footer>
+
+</div>
+</body>
+</html>
